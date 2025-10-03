@@ -1,0 +1,324 @@
+<script setup>
+import { ref, computed } from 'vue';
+
+const props = defineProps({
+  taches: {
+    type: Array,
+    default: () => []
+  }
+});
+
+const ShowModalTache = ref(false);
+
+const AfficheModalTache = () => {
+    ShowModalTache.value = true
+};
+
+const FermerModal = () => {
+    ShowModalTache.value = false
+};
+
+// Calculer la progression
+const progression = computed(() => {
+  if (props.taches.length === 0) return { percentage: 0, completed: 0, total: 0 };
+  
+  const completed = props.taches.filter(t => t.status === 'terminee').length;
+  const percentage = Math.round((completed / props.taches.length) * 100);
+  
+  return { percentage, completed, total: props.taches.length };
+});
+
+// Formater les dates
+const formatDate = (dateStr) => {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('fr-FR', { 
+    day: '2-digit', 
+    month: '2-digit', 
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+defineExpose({ AfficheModalTache, FermerModal })
+</script>
+
+<template>
+  <div class="modal-overlay" v-if="ShowModalTache">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2>Liste des tâches</h2>
+        <button class="close-button" @click="FermerModal">✕</button>
+      </div>
+
+      <!-- Barre de progression -->
+      <div class="progress-section">
+        <div class="progress-info">
+          <span class="progress-label">Progression</span>
+          <span class="progress-percentage">{{ progression.percentage }}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" :style="{ width: progression.percentage + '%' }"></div>
+        </div>
+        <div class="progress-details">
+          <span>{{ progression.completed }} tâche(s) terminée(s) sur {{ progression.total }}</span>
+        </div>
+      </div>
+
+      <!-- Liste des tâches dynamique -->
+      <div class="tasks-list">
+        <div v-if="taches.length === 0" class="no-tasks">
+          Aucune tâche pour cette date
+        </div>
+        
+        <div v-for="(tache, index) in taches" :key="index" class="task-card">
+          <div class="task-header">
+            <h3 class="task-name">{{ tache.title }}</h3>
+            <span :class="['task-status', 'status-' + (tache.status || 'en-attente')]">
+              {{ tache.status === 'terminee' ? 'Terminée' : 'En attente' }}
+            </span>
+          </div>
+          <div class="task-details">
+            <div class="task-detail-item">
+              <span class="detail-label">📅 Début :</span>
+              <span class="detail-value">{{ formatDate(tache.start) }}</span>
+            </div>
+            <div class="task-detail-item">
+              <span class="detail-label">⏰ Fin :</span>
+              <span class="detail-value">{{ formatDate(tache.end) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+
+<style scoped>
+.no-tasks {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  font-style: italic;
+}
+/* Overlay de la modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Container de la modal */
+.modal-container {
+  background-color: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 700px;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+/* En-tête */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.close-button:hover {
+  background-color: #f3f4f6;
+  color: #1f2937;
+}
+
+/* Section progression */
+.progress-section {
+  padding: 24px;
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.progress-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.progress-percentage {
+  font-size: 20px;
+  font-weight: 700;
+  color: #4CAF50;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 12px;
+  background-color: #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50 0%, #66BB6A 100%);
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.progress-details {
+  font-size: 13px;
+  color: #6b7280;
+  text-align: center;
+}
+
+/* Liste des tâches */
+.tasks-list {
+  padding: 16px 24px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Carte de tâche */
+.task-card {
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.task-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.task-card:last-child {
+  margin-bottom: 0;
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.task-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* Status des tâches */
+.task-status {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-en-attente {
+  background-color: #FFF3CD;
+  color: #856404;
+}
+
+.status-terminee {
+  background-color: #D4EDDA;
+  color: #155724;
+}
+
+.status-en-cours {
+  background-color: #CCE5FF;
+  color: #004085;
+}
+
+/* Détails de la tâche */
+.task-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detail-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  min-width: 80px;
+}
+
+.detail-value {
+  font-size: 13px;
+  color: #1f2937;
+}
+
+/* Scrollbar personnalisée */
+.tasks-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tasks-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.tasks-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.tasks-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+</style>
