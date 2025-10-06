@@ -17,6 +17,16 @@ const handleOpenModal = (date) => {
     DateSelectionner.value=date
     
 };
+const handleSupprimerTache = (index) => {
+  const tacheSupprimee = tachesDuJour.value[index]
+
+  // Supprimer de la liste locale
+  tachesDuJour.value.splice(index, 1)
+
+  // Supprimer du calendrier (events)
+  //on filtre les taches qui est different de la tache supprimer
+  events.value = events.value.filter(e => e.id !== tacheSupprimee.id)
+}
 const handleOpenListeTache = (data) => {
    // console.log("Données reçues:", data);
     tachesDuJour.value = data.evenements; // Stocker les événements
@@ -32,7 +42,7 @@ const events = ref([
   }
 ]);
 // quand ModalBox envoie les données d’un nouvel événement
-const handleSaveData = (titre, start, end) => {
+const handleSaveData = (titre, start, end,status) => {
    // console.log("Données reçues:", { titre, start, end })
     //on enleve le T sur le formta date et on remplace par vide
     const formatStartDate = start.replace('T', ' ')
@@ -41,7 +51,8 @@ const handleSaveData = (titre, start, end) => {
   events.value.push({
     start: formatStartDate, // ou formaté en string
     end: formatEndDate,
-    title: titre
+    title: titre,
+    status:status
   })
   //console.log("Events après ajout:", events.value)
   // on ferme le modal après l’enregistrement
@@ -52,7 +63,7 @@ const handleSaveData = (titre, start, end) => {
 <template>
   <div>
     <h1>Mon Calendrier</h1>
-    <ListTache ref="modalTacheref" :taches="tachesDuJour"/>
+    <ListTache ref="modalTacheref" :taches="tachesDuJour" @supprimer-tache="handleSupprimerTache"/>
     <CalendarVue @open-modal="handleOpenModal" :events="events" @ouvrir-modal-listetache="handleOpenListeTache"/> 
     <ModalBox ref="modalRef"  @save-data="handleSaveData" :dateTime="DateSelectionner "/>
   </div>

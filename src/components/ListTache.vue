@@ -7,8 +7,9 @@ const props = defineProps({
     default: () => []
   }
 });
-
+const emit=defineEmits(['supprimer-tache']);
 const ShowModalTache = ref(false);
+const activeDropdown = ref(null);
 
 const AfficheModalTache = () => {
     ShowModalTache.value = true
@@ -16,12 +17,12 @@ const AfficheModalTache = () => {
 
 const FermerModal = () => {
     ShowModalTache.value = false
+    activeDropdown.value = null
 };
 
 // Calculer la progression
 const progression = computed(() => {
   if (props.taches.length === 0) return { percentage: 0, completed: 0, total: 0 };
-  
   const completed = props.taches.filter(t => t.status === 'terminee').length;
   const percentage = Math.round((completed / props.taches.length) * 100);
   
@@ -38,6 +39,35 @@ const formatDate = (dateStr) => {
     hour: '2-digit',
     minute: '2-digit'
   });
+};
+
+// Gérer le dropdown
+const toggleDropdown = (index) => {
+  activeDropdown.value = activeDropdown.value === index ? null : index;
+};
+
+// Changer le status directement dans le tableau
+const changerStatus = (index, nouveauStatus) => {
+  props.taches[index].status = nouveauStatus;
+  activeDropdown.value = null;
+};
+
+// Supprimer une tâche directement du tableau
+const supprimerTache = (index) => {
+  if (confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
+        emit('supprimer-tache',index)
+  }
+
+};
+
+// Obtenir le libellé du status
+const getStatusLabel = (status) => {
+  const labels = {
+    'en-attente': 'En attente',
+    'en-cours': 'En cours',
+    'terminee': 'Terminée'
+  };
+  return labels[status] || 'En attente';
 };
 
 defineExpose({ AfficheModalTache, FermerModal })
@@ -74,9 +104,43 @@ defineExpose({ AfficheModalTache, FermerModal })
         <div v-for="(tache, index) in taches" :key="index" class="task-card">
           <div class="task-header">
             <h3 class="task-name">{{ tache.title }}</h3>
-            <span :class="['task-status', 'status-' + (tache.status || 'en-attente')]">
-              {{ tache.status === 'terminee' ? 'Terminée' : 'En attente' }}
-            </span>
+            <div class="task-actions">
+              <!-- Dropdown pour changer le statut -->
+              <div class="status-dropdown">
+                <button 
+                  :class="['task-status', 'status-' + (tache.status || 'en-attente')]"
+                  @click="toggleDropdown(index)"
+                >
+                  {{ getStatusLabel(tache.status || 'en-attente') }}
+                  <span class="dropdown-arrow">▼</span>
+                </button>
+                <!-- Menu dropdown -->
+                <div v-if="activeDropdown === index" class="dropdown-menu">
+                  <button 
+                    class="dropdown-item status-en-attente"
+                    @click="changerStatus(index, 'en-attente')"
+                  >
+                    En attente
+                  </button>
+                  <button 
+                    class="dropdown-item status-en-cours"
+                    @click="changerStatus(index, 'en-cours')"
+                  >
+                    En cours
+                  </button>
+                  <button 
+                    class="dropdown-item status-terminee"
+                    @click="changerStatus(index, 'terminee')"
+                  >
+                    Terminée
+                  </button>
+                </div>
+              </div>
+              <!-- Bouton X pour supprimer -->
+              <button class="delete-button" @click="supprimerTache(index)" title="Supprimer la tâche">
+                ✕
+              </button>
+            </div>
           </div>
           <div class="task-details">
             <div class="task-detail-item">
@@ -102,6 +166,7 @@ defineExpose({ AfficheModalTache, FermerModal })
   color: #666;
   font-style: italic;
 }
+
 /* Overlay de la modal */
 .modal-overlay {
   position: fixed;
@@ -245,6 +310,7 @@ defineExpose({ AfficheModalTache, FermerModal })
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+  gap: 12px;
 }
 
 .task-name {
@@ -252,15 +318,47 @@ defineExpose({ AfficheModalTache, FermerModal })
   font-size: 16px;
   font-weight: 600;
   color: #1f2937;
+  flex: 1;
 }
 
-/* Status des tâches */
+.task-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ========== DROPDOWN POUR CHANGER LE STATUT ========== */
+.status-dropdown {
+  position: relative;
+}
+
 .task-status {
-  padding: 4px 12px;
-  border-radius: 12px;
+  padding: 6px 16px;
+  border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.task-status:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.dropdown-arrow {
+  font-size: 8px;
+  transition: transform 0.2s;
+}
+
+.task-status:hover .dropdown-arrow {
+  transform: translateY(1px);
 }
 
 .status-en-attente {
@@ -276,6 +374,87 @@ defineExpose({ AfficheModalTache, FermerModal })
 .status-en-cours {
   background-color: #CCE5FF;
   color: #004085;
+}
+
+/* Menu dropdown qui apparaît quand on clique */
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  z-index: 10;
+  min-width: 140px;
+  animation: dropdownSlide 0.2s ease;
+}
+
+@keyframes dropdownSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-item {
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  text-transform: uppercase;
+}
+
+.dropdown-item:hover {
+  opacity: 0.8;
+}
+
+.dropdown-item.status-en-attente {
+  background-color: #FFF3CD;
+  color: #856404;
+}
+
+.dropdown-item.status-en-cours {
+  background-color: #CCE5FF;
+  color: #004085;
+}
+
+.dropdown-item.status-terminee {
+  background-color: #D4EDDA;
+  color: #155724;
+}
+
+/* ========== BOUTON X POUR SUPPRIMER ========== */
+.delete-button {
+  background-color: #fee;
+  color: #c00;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.delete-button:hover {
+  background-color: #f44336;
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(244, 67, 54, 0.3);
 }
 
 /* Détails de la tâche */

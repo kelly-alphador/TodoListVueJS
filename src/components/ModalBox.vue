@@ -11,14 +11,12 @@
             
         }
     });
-    const SaveData=()=>{
-
-        emit('save-data',Tache.value,selectedDateTime.value,selectedEndDateTime.value);
-        CloseModal()
-        console.log("je suis enregistre")
-        Tache.value='';
+    const SaveData = () => {
+    emit('save-data', Tache.value, selectedDateTime.value, selectedEndDateTime.value, 'en-attente'); // ✅ Avec tiret
+    CloseModal()
+    console.log("je suis enregistre")
+    Tache.value = '';
     }
-    
     //on creer la fonction pour ouvrir et fermer le modal
     const OpenModal=()=>
     {
